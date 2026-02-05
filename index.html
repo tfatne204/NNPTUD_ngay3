@@ -10,6 +10,9 @@
     .price-badge{font-size:0.95rem}
     .sortable{cursor:pointer;user-select:none}
     .sortable:hover{color:#0066cc;text-decoration:underline}
+    .product-row{cursor:pointer}
+    .product-row:hover{background-color:#f8f9fa}
+    .modal-image{max-width:200px;height:auto;border-radius:8px;margin-bottom:15px}
   </style>
 </head>
 <body>
@@ -66,6 +69,51 @@
         <small id="page-info" class="text-muted">Trang 1</small>
       </div>
     </nav>
+  </div>
+
+  <!-- Product Detail Modal -->
+  <div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="productTitle">Chi tiết sản phẩm</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <img id="productImage" src="" alt="Product" class="modal-image d-block mx-auto">
+          <div id="viewMode">
+            <p><strong>ID:</strong> <span id="productId"></span></p>
+            <p><strong>Title:</strong> <span id="productTitleText"></span></p>
+            <p><strong>Price:</strong> <span id="productPriceText"></span></p>
+            <p><strong>Category:</strong> <span id="productCategoryText"></span></p>
+            <p><strong>Description:</strong> <span id="productDescriptionText"></span></p>
+          </div>
+          <div id="editMode" style="display:none;">
+            <form id="editForm">
+              <div class="mb-3">
+                <label class="form-label">Title</label>
+                <input type="text" id="editTitle" class="form-control" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Price</label>
+                <input type="number" id="editPrice" class="form-control" step="0.01" min="0" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea id="editDescription" class="form-control" rows="3"></textarea>
+              </div>
+              <small class="text-muted d-block" id="editStatus"></small>
+            </form>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="editBtn" class="btn btn-primary">✏️ Edit</button>
+          <button type="button" id="saveBtn" class="btn btn-success" style="display:none;">💾 Save</button>
+          <button type="button" id="cancelEditBtn" class="btn btn-secondary" style="display:none;">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+        </div>
+      </div>
+    </div>
   </div>
   <script src="app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

@@ -9,6 +9,10 @@
   const pageNumbersContainer=document.getElementById('page-numbers');
   const pageInfo=document.getElementById('page-info');
   const exportCsvBtn=document.getElementById('export-csv');
+  const productModal=new bootstrap.Modal(document.getElementById('productModal'));
+  const editBtn=document.getElementById('editBtn');
+  const saveBtn=document.getElementById('saveBtn');
+  const cancelEditBtn=document.getElementById('cancelEditBtn');
   
   let products=[];
   let currentPage=1;
@@ -16,6 +20,8 @@
   let filteredProducts=[];
   let sortField=null;
   let sortAsc=true;
+  let currentProduct=null;
+  let isEditMode=false;
 
   function escapeHtml(str){
     return String(str).replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
@@ -40,6 +46,7 @@
     
     pageData.forEach(p=>{
       const tr=document.createElement('tr');
+      tr.className = 'product-row';
       const cat = (p.category && (p.category.name || p.category)) ? (p.category.name || p.category) : '';
       tr.innerHTML = `
         <td>${p.id}</td>
@@ -54,6 +61,8 @@
         tr.setAttribute('data-bs-placement', 'top');
         tr.setAttribute('title', desc);
       }
+      // click to show modal
+      tr.addEventListener('click', () => showProductDetail(p));
       tbody.appendChild(tr);
     })
     initTooltips();
@@ -212,5 +221,85 @@
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  });
+
+  // product detail modal handlers
+  function showProductDetail(product){
+    currentProduct = {...product};
+    isEditMode = false;
+    document.getElementById('productId').textContent = product.id;
+    document.getElementById('productTitleText').textContent = product.title;
+    document.getElementById('productPriceText').textContent = `$${Number(product.price).toFixed(2)}`;
+    document.getElementById('productCategoryText').textContent = product.category?.name || product.category || '';
+    document.getElementById('productDescriptionText').textContent = product.description || 'N/A';
+    const img = document.getElementById('productImage');
+    img.src = (product.images && product.images[0]) || 'https://via.placeholder.com/200';
+    switchViewMode();
+    productModal.show();
+  }
+
+  function switchViewMode(){
+    const viewMode = document.getElementById('viewMode');
+    const editMode = document.getElementById('editMode');
+    const editStatus = document.getElementById('editStatus');
+    editStatus.textContent = '';
+    
+    if(isEditMode){
+      viewMode.style.display = 'none';
+      editMode.style.display = 'block';
+      editBtn.style.display = 'none';
+      saveBtn.style.display = 'inline-block';
+      cancelEditBtn.style.display = 'inline-block';
+      document.getElementById('editTitle').value = currentProduct.title;
+      document.getElementById('editPrice').value = currentProduct.price;
+      document.getElementById('editDescription').value = currentProduct.description || '';
+    }else{
+      viewMode.style.display = 'block';
+      editMode.style.display = 'none';
+      editBtn.style.display = 'inline-block';
+      saveBtn.style.display = 'none';
+      cancelEditBtn.style.display = 'none';
+    }
+  }
+
+  editBtn.addEventListener('click', () => {
+    isEditMode = true;
+    switchViewMode();
+  });
+
+  cancelEditBtn.addEventListener('click', () => {
+    isEditMode = false;
+    switchViewMode();
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    const editStatus = document.getElementById('editStatus');
+    editStatus.textContent = 'Đang lưu...';
+    
+    const updatedData = {
+      title: document.getElementById('editTitle').value,
+      price: Number(document.getElementById('editPrice').value),
+      description: document.getElementById('editDescription').value
+    };
+
+    try{
+      const res = await fetch(`${API}/${currentProduct.id}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(updatedData)
+      });
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const updated = await res.json();
+      Object.assign(currentProduct, updated);
+      editStatus.textContent = '✓ Lưu thành công!';
+      setTimeout(() => {
+        isEditMode = false;
+        switchViewMode();
+        showProductDetail(currentProduct);
+        applyFilter();
+      }, 1000);
+    }catch(err){
+      editStatus.textContent = `❌ Lỗi: ${err.message}`;
+    }
   });
 })();

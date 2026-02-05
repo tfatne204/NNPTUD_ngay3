@@ -32,7 +32,25 @@
         <td>${escapeHtml(cat)}</td>
         <td>${renderImages(p.images)}</td>
       `;
+      // attach description as tooltip on the whole row
+      const desc = (p.description || '').toString();
+      if(desc) {
+        tr.setAttribute('data-bs-toggle', 'tooltip');
+        tr.setAttribute('data-bs-placement', 'top');
+        tr.setAttribute('title', desc);
+      }
       tbody.appendChild(tr);
+    })
+    initTooltips();
+  }
+
+  function initTooltips(){
+    if(typeof bootstrap === 'undefined') return;
+    const rows = tbody.querySelectorAll('tr[data-bs-toggle="tooltip"]');
+    rows.forEach(r=>{
+      // avoid double-init
+      if(r._tooltip) return;
+      try{ r._tooltip = new bootstrap.Tooltip(r, {container: 'body'}); }catch(e){}
     })
   }
 

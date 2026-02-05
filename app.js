@@ -54,20 +54,32 @@
     })
   }
 
-  try{
-    showSpinner(true);
-    const res=await fetch(API);
-    if(!res.ok) throw new Error(res.status+' '+res.statusText);
-    products=await res.json();
-    render(products);
-  }catch(err){
-    tbody.innerHTML=`<tr><td colspan="5" class="text-danger">Error: ${escapeHtml(err.message)}</td></tr>`;
-  }finally{
-    showSpinner(false);
+  // helper to get current search query
+  function getQuery(){ return (searchInput.value || '').trim().toLowerCase(); }
+
+  async function fetchAndUpdate(){
+    try{
+      showSpinner(true);
+      const res = await fetch(API);
+      if(!res.ok) throw new Error(res.status+' '+res.statusText);
+      products = await res.json();
+      const q = getQuery();
+      const toShow = q ? products.filter(p => (p.title||'').toLowerCase().includes(q)) : products;
+      render(toShow);
+    }catch(err){
+      tbody.innerHTML = `<tr><td colspan="5" class="text-danger">Error: ${escapeHtml(err.message)}</td></tr>`;
+    }finally{
+      showSpinner(false);
+    }
   }
 
+  // initial load
+  await fetchAndUpdate();
+  // auto-refresh every 60 seconds (updates products and reapplies current search)
+  setInterval(fetchAndUpdate, 60000);
+
   searchInput.addEventListener('input', e=>{
-    const q = (e.target.value || '').trim().toLowerCase();
+    const q = getQuery();
     if(!q) return render(products);
     const filtered = products.filter(p=> (p.title||'').toLowerCase().includes(q));
     render(filtered);

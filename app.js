@@ -8,6 +8,7 @@
   const nextBtn=document.getElementById('next-btn');
   const pageNumbersContainer=document.getElementById('page-numbers');
   const pageInfo=document.getElementById('page-info');
+  const exportCsvBtn=document.getElementById('export-csv');
   
   let products=[];
   let currentPage=1;
@@ -185,5 +186,31 @@
       currentPage = 1;
       updatePagination(filteredProducts);
     });
+  });
+
+  // export CSV handler
+  exportCsvBtn.addEventListener('click', () => {
+    if(!filteredProducts || filteredProducts.length === 0){
+      alert('Không có dữ liệu để xuất');
+      return;
+    }
+    const headers = ['ID', 'Title', 'Price', 'Category', 'Description'];
+    const rows = filteredProducts.map(p => [
+      p.id,
+      `"${(p.title || '').replace(/"/g, '""')}"`,
+      Number(p.price).toFixed(2),
+      `"${(p.category?.name || p.category || '').replace(/"/g, '""')}"`,
+      `"${(p.description || '').replace(/"/g, '""')}"`
+    ]);
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `products_${new Date().getTime()}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   });
 })();

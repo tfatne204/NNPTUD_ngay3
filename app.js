@@ -3,7 +3,18 @@
   const tbody=document.querySelector('#products-table tbody');
   const spinner=document.getElementById('spinner');
   const searchInput=document.getElementById('search');
+  const itemsPerPageSelect=document.getElementById('items-per-page');
+  const prevBtn=document.getElementById('prev-btn');
+  const nextBtn=document.getElementById('next-btn');
+  const pageNumbersContainer=document.getElementById('page-numbers');
+  const pageInfo=document.getElementById('page-info');
+  
   let products=[];
+  let currentPage=1;
+  let itemsPerPage=10;
+  let filteredProducts=[];
+  let sortField=null;
+  let sortAsc=true;
 
   function escapeHtml(str){
     return String(str).replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
@@ -16,110 +27,16 @@
 
   function showSpinner(on){ spinner.style.display = on ? 'flex' : 'none'; }
 
-  let currentPage = 1;
-  let perPage = 10;
-  const perPageSelect = document.getElementById('perPage');
-  const paginationNav = document.getElementById('pagination-nav');
-
-  function getPageData(list){
-    const start = (currentPage - 1) * perPage;
-    return list.slice(start, start + perPage);
-  }
-
-  function renderPagination(total){
-    paginationNav.innerHTML = '';
-    if(total <= perPage) return; // no pagination needed
-    
-    const pages = Math.ceil(total / perPage);
-    const ul = document.createElement('ul');
-    ul.className = 'pagination pagination-sm mb-0';
-    
-    // prev button
-    const prevLi = document.createElement('li');
-    prevLi.className = 'page-item ' + (currentPage === 1 ? 'disabled' : '');
-    prevLi.innerHTML = '<a class="page-link" href="#">Trước</a>';
-    prevLi.addEventListener('click', e=>{
-      e.preventDefault();
-      if(currentPage > 1){
-        currentPage--;
-        applyFiltersAndRender();
-      }
-    });
-    ul.appendChild(prevLi);
-    
-    // page numbers (show max 5 pages)
-    const start = Math.max(1, currentPage - 2);
-    const end = Math.min(pages, currentPage + 2);
-    if(start > 1){
-      const li = document.createElement('li');
-      li.className = 'page-item';
-      li.innerHTML = '<a class="page-link" href="#">1</a>';
-      li.addEventListener('click', e=>{
-        e.preventDefault();
-        currentPage = 1;
-        applyFiltersAndRender();
-      });
-      ul.appendChild(li);
-      if(start > 2){
-        const li2 = document.createElement('li');
-        li2.className = 'page-item disabled';
-        li2.innerHTML = '<span class="page-link">...</span>';
-        ul.appendChild(li2);
-      }
-    }
-    for(let i=start; i<=end; i++){
-      const li = document.createElement('li');
-      li.className = 'page-item ' + (i === currentPage ? 'active' : '');
-      li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
-      li.addEventListener('click', e=>{
-        e.preventDefault();
-        currentPage = i;
-        applyFiltersAndRender();
-      });
-      ul.appendChild(li);
-    }
-    if(end < pages){
-      if(end < pages - 1){
-        const li2 = document.createElement('li');
-        li2.className = 'page-item disabled';
-        li2.innerHTML = '<span class="page-link">...</span>';
-        ul.appendChild(li2);
-      }
-      const li = document.createElement('li');
-      li.className = 'page-item';
-      li.innerHTML = `<a class="page-link" href="#">${pages}</a>`;
-      li.addEventListener('click', e=>{
-        e.preventDefault();
-        currentPage = pages;
-        applyFiltersAndRender();
-      });
-      ul.appendChild(li);
-    }
-    
-    // next button
-    const nextLi = document.createElement('li');
-    nextLi.className = 'page-item ' + (currentPage === pages ? 'disabled' : '');
-    nextLi.innerHTML = '<a class="page-link" href="#">Sau</a>';
-    nextLi.addEventListener('click', e=>{
-      e.preventDefault();
-      if(currentPage < pages){
-        currentPage++;
-        applyFiltersAndRender();
-      }
-    });
-    ul.appendChild(nextLi);
-    
-    paginationNav.appendChild(ul);
-  }
-
-  function render(list){
+  function renderPage(list){
     tbody.innerHTML = '';
     if(!Array.isArray(list) || list.length===0){
       tbody.innerHTML = '<tr><td colspan="5" class="text-muted">Không có sản phẩm</td></tr>';
-      renderPagination(0);
       return;
     }
-    const pageData = getPageData(list);
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const pageData = list.slice(start, end);
+    
     pageData.forEach(p=>{
       const tr=document.createElement('tr');
       const cat = (p.category && (p.category.name || p.category)) ? (p.category.name || p.category) : '';
@@ -130,7 +47,6 @@
         <td>${escapeHtml(cat)}</td>
         <td>${renderImages(p.images)}</td>
       `;
-      // attach description as tooltip on the whole row
       const desc = (p.description || '').toString();
       if(desc) {
         tr.setAttribute('data-bs-toggle', 'tooltip');
@@ -139,8 +55,62 @@
       }
       tbody.appendChild(tr);
     })
-    renderPagination(list.length);
     initTooltips();
+  }
+  
+  function updatePagination(list){
+    const totalPages = Math.ceil(list.length / itemsPerPage);
+    currentPage = Math.max(1, Math.min(currentPage, totalPages));
+    
+    pageInfo.textContent = `Trang ${currentPage} / ${totalPages}` + (list.length > 0 ? ` (${list.length} sản phẩm)` : '');
+    
+    renderPage(list);
+    
+    prevBtn.classList.toggle('disabled', currentPage===1);
+    nextBtn.classList.toggle('disabled', currentPage===totalPages);
+    
+    pageNumbersContainer.innerHTML = '';
+    const maxPageBtns = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxPageBtns/2));
+    let endPage = Math.min(totalPages, startPage + maxPageBtns - 1);
+    if(endPage - startPage + 1 < maxPageBtns) startPage = Math.max(1, endPage - maxPageBtns + 1);
+    
+    for(let i=startPage; i<=endPage; i++){
+      const li = document.createElement('li');
+      li.className = 'page-item' + (i===currentPage ? ' active' : '');
+      li.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
+      li.querySelector('a').addEventListener('click', e=>{
+        e.preventDefault();
+        currentPage = i;
+        updatePagination(list);
+      });
+      pageNumbersContainer.appendChild(li);
+    }
+    updateSortIndicators();
+  }
+  
+  function updateSortIndicators(){
+    document.querySelectorAll('.sort-indicator').forEach(s => s.textContent = '');
+    if(sortField){
+      const indicator = document.querySelector(`[data-sort-field="${sortField}"] .sort-indicator`);
+      if(indicator) indicator.textContent = sortAsc ? ' ↑' : ' ↓';
+    }
+  }
+  
+  function sortList(list, field){
+    if(sortField === field){
+      sortAsc = !sortAsc;
+    }else{
+      sortField = field;
+      sortAsc = true;
+    }
+    const sorted = [...list].sort((a, b) => {
+      let valA = field === 'price' ? Number(a[field]) || 0 : (a[field] || '').toString().toLowerCase();
+      let valB = field === 'price' ? Number(b[field]) || 0 : (b[field] || '').toString().toLowerCase();
+      const cmp = valA < valB ? -1 : valA > valB ? 1 : 0;
+      return sortAsc ? cmp : -cmp;
+    });
+    return sorted;
   }
 
   function initTooltips(){
@@ -156,10 +126,11 @@
   // helper to get current search query
   function getQuery(){ return (searchInput.value || '').trim().toLowerCase(); }
 
-  function applyFiltersAndRender(){
+  function applyFilter(){
     const q = getQuery();
-    const filtered = q ? products.filter(p=> (p.title||'').toLowerCase().includes(q)) : products;
-    render(filtered);
+    filteredProducts = q ? products.filter(p => (p.title||'').toLowerCase().includes(q)) : products;
+    currentPage = 1;
+    updatePagination(filteredProducts);
   }
 
   async function fetchAndUpdate(){
@@ -168,8 +139,7 @@
       const res = await fetch(API);
       if(!res.ok) throw new Error(res.status+' '+res.statusText);
       products = await res.json();
-      currentPage = 1; // reset to first page on new data
-      applyFiltersAndRender();
+      applyFilter();
     }catch(err){
       tbody.innerHTML = `<tr><td colspan="5" class="text-danger">Error: ${escapeHtml(err.message)}</td></tr>`;
     }finally{
@@ -182,14 +152,38 @@
   // auto-refresh every 60 seconds (updates products and reapplies current search)
   setInterval(fetchAndUpdate, 60000);
 
-  searchInput.addEventListener('input', e=>{
-    currentPage = 1; // reset page when searching
-    applyFiltersAndRender();
+  searchInput.addEventListener('input', applyFilter);
+  
+  itemsPerPageSelect.addEventListener('change', e=>{
+    itemsPerPage = parseInt(e.target.value, 10);
+    currentPage = 1;
+    updatePagination(filteredProducts);
+  });
+  
+  prevBtn.addEventListener('click', e=>{
+    e.preventDefault();
+    if(currentPage > 1){
+      currentPage--;
+      updatePagination(filteredProducts);
+    }
+  });
+  
+  nextBtn.addEventListener('click', e=>{
+    e.preventDefault();
+    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+    if(currentPage < totalPages){
+      currentPage++;
+      updatePagination(filteredProducts);
+    }
   });
 
-  perPageSelect.addEventListener('change', e=>{
-    perPage = parseInt(e.target.value);
-    currentPage = 1; // reset page when changing items per page
-    applyFiltersAndRender();
+  // attach sort handlers
+  document.querySelectorAll('.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const field = th.getAttribute('data-sort-field');
+      filteredProducts = sortList(filteredProducts, field);
+      currentPage = 1;
+      updatePagination(filteredProducts);
+    });
   });
 })();

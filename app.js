@@ -9,10 +9,13 @@
   const pageNumbersContainer=document.getElementById('page-numbers');
   const pageInfo=document.getElementById('page-info');
   const exportCsvBtn=document.getElementById('export-csv');
+  const createBtn=document.getElementById('create-btn');
   const productModal=new bootstrap.Modal(document.getElementById('productModal'));
+  const createModal=new bootstrap.Modal(document.getElementById('createModal'));
   const editBtn=document.getElementById('editBtn');
   const saveBtn=document.getElementById('saveBtn');
   const cancelEditBtn=document.getElementById('cancelEditBtn');
+  const submitCreateBtn=document.getElementById('submitCreateBtn');
   
   let products=[];
   let currentPage=1;
@@ -300,6 +303,43 @@
       }, 1000);
     }catch(err){
       editStatus.textContent = `❌ Lỗi: ${err.message}`;
+    }
+  });
+
+  // create product modal handler
+  createBtn.addEventListener('click', () => {
+    document.getElementById('createForm').reset();
+    document.getElementById('createStatus').textContent = '';
+    createModal.show();
+  });
+
+  submitCreateBtn.addEventListener('click', async () => {
+    const createStatus = document.getElementById('createStatus');
+    createStatus.textContent = 'Đang tạo...';
+    
+    const newProduct = {
+      title: document.getElementById('createTitle').value,
+      price: Number(document.getElementById('createPrice').value),
+      categoryId: Number(document.getElementById('createCategory').value),
+      description: document.getElementById('createDescription').value || '',
+      images: document.getElementById('createImage').value ? [document.getElementById('createImage').value] : []
+    };
+
+    try{
+      const res = await fetch(API, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(newProduct)
+      });
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const created = await res.json();
+      createStatus.textContent = '✓ Tạo thành công!';
+      setTimeout(() => {
+        createModal.hide();
+        applyFilter();
+      }, 1000);
+    }catch(err){
+      createStatus.textContent = `❌ Lỗi: ${err.message}`;
     }
   });
 })();

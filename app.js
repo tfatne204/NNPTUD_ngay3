@@ -10,12 +10,16 @@
   const pageInfo=document.getElementById('page-info');
   const exportCsvBtn=document.getElementById('export-csv');
   const createBtn=document.getElementById('create-btn');
-  const productModal=new bootstrap.Modal(document.getElementById('productModal'));
-  const createModal=new bootstrap.Modal(document.getElementById('createModal'));
   const editBtn=document.getElementById('editBtn');
   const saveBtn=document.getElementById('saveBtn');
   const cancelEditBtn=document.getElementById('cancelEditBtn');
   const submitCreateBtn=document.getElementById('submitCreateBtn');
+  
+  let productModal, createModal;
+  if(typeof bootstrap !== 'undefined'){
+    productModal = new bootstrap.Modal(document.getElementById('productModal'));
+    createModal = new bootstrap.Modal(document.getElementById('createModal'));
+  }
   
   let products=[];
   let currentPage=1;
@@ -228,6 +232,7 @@
 
   // product detail modal handlers
   function showProductDetail(product){
+    if(!productModal) productModal = new bootstrap.Modal(document.getElementById('productModal'));
     currentProduct = {...product};
     isEditMode = false;
     document.getElementById('productId').textContent = product.id;
@@ -308,6 +313,7 @@
 
   // create product modal handler
   createBtn.addEventListener('click', () => {
+    if(!createModal) createModal = new bootstrap.Modal(document.getElementById('createModal'));
     document.getElementById('createForm').reset();
     document.getElementById('createStatus').textContent = '';
     createModal.show();
